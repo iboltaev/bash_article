@@ -9,13 +9,10 @@
 - projects/
   - project1/
     - conf/
-        # конфигурации построения отчетов по таблицам
-      - [run configurations]*.conf  
+      - [run configurations]*.conf  -- конфигурации построения отчетов по таблицам
     - reports/
-        # папки с конфигурациями
-      - [run configurations]/   
-          # сами отчеты, содержат статистику по таблицам Apache Hive
-        - report1.json              
+      - [run configurations]/   --  папки с конфигурациями
+        - report1.json          --  сами отчеты, содержат статистику по таблицам Apache Hive    
         - report2.json
           ...
       .../
