@@ -1,8 +1,8 @@
 # reports - tables
-find <projects> -maxdepth 1 | sed 's/$/\/reports\//g' | xargs -n1 -I d grep -r "\"table\":" d | awk '{print $1 " " $3}' | sed 's/[\r\n",:]//g' | grep "\s[A-Za-z0-9]" | sort -k 1b,1 | uniq > report_tables
+grep -r "\"table\":" projects/*/reports/* | awk '{print $1 " " $3}' | sed 's/[\r\n",:]//g' | grep "\s[A-Za-z0-9]" | sort -k 1b,1 | uniq > report_tables
 
 # reports - dates
-find <projects> -maxdepth 1 | sed 's/$/\/reports/g' | xargs -n1 -I dr grep -r "\"created_date\":" dr | awk '{print $1 " " $3"T"$4}' | sed 's/[\r\n\t":,]//g' | sort -k 1b,1 | uniq > report_dates
+grep -r "\"created_date\":" projects/*/reports/* | awk '{print $1 " " $3"T"$4}' | sed 's/[\r\n\t":,]//g' | sort -k 1b,1 | uniq > report_dates
 
 # reports - tables & dates
 join report_tables report_dates > report_table_date
@@ -11,7 +11,7 @@ join report_tables report_dates > report_table_date
 cat report_tables | awk '{print $1}' | sort | uniq | while read line; do re1=".*/projects/([^/]*)/reports/.*"; proj=""; if [[ $line =~ $re1 ]]; then proj=${BASH_REMATCH[1]} ; fi; re2=".*/([^/]*)/[^/]*$"; run=""; if [[ $line =~ $re2 ]]; then run=${BASH_REMATCH[1]} ;fi; echo $line $proj:$run; done | sort -k 1b,1 | uniq > report_project_run
 
 # configs - schemas
-find <projects> -maxdepth 1 | sed 's/$/\/conf/g' | xargs -n1 -I dr grep -r "schema\":" dr | awk '{print $1 " " $3}' | sed 's/[\r\n\t":,]//g' | sort -k 1b,1 | uniq > config_schemas
+grep -r "schema\":" projects/*/conf/* | awk '{print $1 " " $3}' | sed 's/[\r\n\t":,]//g' | sort -k 1b,1 | uniq > config_schemas
 
 # configs - projects & runs
 cat config_schemas | awk '{print $1}' | sort | uniq | while read line; do re1=".*/<projects>/([^/]*)/conf/.*"; proj=""; if [[ $line =~ $re1 ]]; then proj=${BASH_REMATCH[1]} ; fi; re2=".*/([^/\.]*)\.[^\.]*$"; run=""; if [[ $line =~ $re2 ]]; then run=${BASH_REMATCH[1]} ;fi; echo $line $proj:$run; done | sort -k 1b,1 | uniq > config_project
