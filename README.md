@@ -12,7 +12,7 @@
       - [run configurations]*.conf  # конфигурации построения отчетов по таблицам
     - reports/
       - [run configurations]/       # папки с конфигурациями
-        - report1.json            # сами отчеты, содержат статистику по таблицам Apache Hive
+        - report1.json              # сами отчеты, содержат статистику по таблицам Apache Hive
         - report2.json
           ...
       .../
