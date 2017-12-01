@@ -14,10 +14,7 @@
       - [run configurations]/   --  папки с конфигурациями
         - report1.json          --  сами отчеты, содержат статистику по таблицам Apache Hive    
         - report2.json
-          ...
-      .../
   - project2/
-    .../
   
 Надо: найти просроченные отчеты.
 
@@ -56,9 +53,10 @@ reports - сами отчеты, разложенные в папки с име�
 Берем содержимое первого уровня папки projects, добавляем в конец /reports/, и только теперь в каждой такой папке запускаем grep -r.
 Он отдает нам данные в таком виде:
 ```  
-projects/project1/reports/run1/<report1>.json:            "table": "table1",
-projects/project1/reports/run1/<report1>.json:            "table": "table2",
-projects/project1/reports/run2/<report1>.json:            "table": "table3",
+projects/project1/reports/run1/report1.json:            "table": "table1",
+projects/project1/reports/run2/report2.json:            "table": "table2",
+projects/project2/reports/run3/report3.json:            "table": "table3",
+...
 ```
 ```
   ... |  awk '{print $1 " " $3}' | sed 's/[\r\n",:]//g' | grep "\s[A-Za-z0-9]" | sort -k 1b,1 | uniq > report_tables
@@ -66,3 +64,21 @@ projects/project1/reports/run2/<report1>.json:            "table": "table3",
 
 Печатаем первую (файл отчета) и третью (имя таблицы) колонки, чистим мусор sed-ом, затем grep-ом, пересортировываем и сохраняем в нашу
 первую таблицу - report_tables.
+
+Затем таким же способом строим таблицу report_dates, только грепаем created_date и выводим чуть больше колонок (дату и время):
+```
+find projects -maxdepth 1 | sed 's/$/\/reports\//g' | xargs -n1 -I dr grep -r "\"created_date\":" dr | ...
+... | awk '{print $1 " " $3"T"$4}' | sed 's/[\r\n",:]//g' | sort -k 1b,1 | uniq > report_dates
+```
+
+Теперь джойним их, и получаем таблицу с файлами отчетов, таблицами и датами создания этого отчета:
+```
+join report_tables report_dates > report_table_date
+```
+```
+projects/project1/reports/run1/report1.json table1 2017-08-07T070918.024907
+projects/project1/reports/run1/report1.json table2 2017-08-07T070918.024907
+projects/project1/reports/run1/report1.json table3 2017-08-07T070918.024907
+...
+```
+Первая часть готова.
