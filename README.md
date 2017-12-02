@@ -78,10 +78,9 @@ grep -r "schema\":" projects/*/conf/* | sed 's/:/ /g' | awk '{print $3 " " $1}' 
 ... | sort -k 1b,1 | uniq > schema_configs
 ```
 ```
-projects/project1/conf/run1.conf schema_1
-projects/project1/conf/run1.conf schema_2
-projects/project1/conf/run2.conf schema_1
-projects/project1/conf/run2.conf schema_2
+schema1 projects/project1/conf/run1.conf
+schema1 projects/project1/conf/run2.conf
+schema2 projects/project2/conf/run1.conf
 ```
 Вот и первая трудность. Предыдущая таблица построена по файлам отчетов, а эта - по файлам конфигов. Надо проставить между ними соответствие:
 ```
