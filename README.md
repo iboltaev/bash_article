@@ -50,16 +50,15 @@ projects/project2/reports/run3/report3.json:            "table": "table3",
 ...
 ```
 ```
-  ... |  awk '{print $1 " " $3}' | sed 's/[\r\n",:]//g' | sort -k 1b,1 | uniq > report_tables
+  ... | sed 's/:/ /g' |  awk '{print $1 " " $3}' | sed 's/[\r\n",:]//g' | sort -k 1b,1 | uniq > report_tables
 ```
 
-Печатаем первую (файл отчета) и третью (имя таблицы) колонки, чистим мусор sed-ом, пересортировываем и сохраняем в нашу
-первую таблицу - report_tables.
+Меняем ':' на пробел, чтобы точно отделить имя файла от колонки "table", печатаем первую (файл отчета) и третью (имя таблицы) колонки, чистим мусор sed-ом, пересортировываем и сохраняем в нашу первую таблицу - report_tables.
 
 Затем таким же способом строим таблицу report_dates, только грепаем created_date и выводим чуть больше колонок (дату и время):
 ```
-grep -r "\"created_date\":" projects/*/reports/* | ...
-... | awk '{print $1 " " $3"T"$4}' | sed 's/[\r\n",:]//g' | sort -k 1b,1 | uniq > report_dates
+grep -r "\"created_date\":" projects/*/reports/* | sed 's/:/ /g' | ...
+... | awk '{print $1 " " $3"T"$4":"$5":"$6}' | sed 's/[\r\n",:]//g' | sort -k 1b,1 | uniq > report_dates
 ```
 
 Теперь джойним их, и получаем таблицу с файлами отчетов, таблицами и датами создания этого отчета:
@@ -74,8 +73,8 @@ projects/project1/reports/run1/report1.json table3 2017-08-07T070918.024907
 ```
 Первая часть вроде бы готова. Теперь по аналогии нагрепаем используемые базы:
 ```
-grep -r "schema\":" ~/projects/*/conf/* | awk '{print $1 " " $3}' | sed 's/[\r\n\t":,]//g' | ...
-... | sort -k 1b,1 | uniq > config_schemas
+grep -r "schema\":" projects/*/conf/* | sed 's/:/ /g' | awk '{print $3 " " $1}' | sed 's/[\r\n":,]//g' | ...
+... | sort -k 1b,1 | uniq > schema_configs
 ```
 ```
 projects/project1/conf/run1.conf schema_1
@@ -83,3 +82,48 @@ projects/project1/conf/run1.conf schema_2
 projects/project1/conf/run2.conf schema_1
 projects/project1/conf/run2.conf schema_2
 ```
+Вот и первая трудность. Предыдущая таблица построена по файлам отчетов, а эта - по файлам конфигов. Надо проставить между ними соответствие:
+```
+cat schema_configs | awk '{print $2}' | sort | uniq | grep ".conf$" | ...
+```
+А теперь задумаемся. Просто поставить ```xargs -n1 find ...``` мы не можем, так как потеряем саму строку с конфигом, а она нужна. Придется итерироваться циклом, ну да ладно. Ставим пайп и поехали:
+```
+... | while read line; do <statements>; done | sort -k 1b,1 > config_reports
+```
+Далее пишем все внутри statements:
+```
+dir=(dirname $line); dir2=$(dirname $dir); run=$(echo $line | sed "s/.*\///" | sed 's/\.conf//g'); ...
+... ; reps=$(find $dir2/reports/$run/ -name *.json); for r in $reps; do echo $line $r ; done
+```
+Выглядит сложно. ```dirname``` вытаскивает из пути к файлу путь до последнего слеша, этим мы и воспользовались, чтобы подняться выше файла с отчетом на пару уровней ($dir2). Следующее выражение ```run=...``` вытаскивает из $line имя файла ```run.conf``` и обрезает расширение, получая имя конфигурации запуска. Далее reps - имена файлов с отчетами для данного конфига, и циклом по ним выводим файл с конфигом $line и файл с отчетом $r. Пересортировываем и пишем табличку config_reports.
+```
+projects/project1/conf/run1.conf projects/project1/reports/run1/report1.json
+projects/project1/conf/run1.conf projects/project1/reports/run1/report2.json
+projects/project1/conf/run2.conf projects/project1/reports/run2/report3.json
+
+```
+Мы только что проделали самую важную часть работы - проставили соответствие между пространством конфигов и пространством отчетов. Нам осталось только определить даты последнего изменения таблиц в используемых бд, и у нас будет вся нужная инфа, останется только все правильно переджойнить. Поехали:
+```
+cat schema_configs | awk '{print $1}' | sort | uniq | sed 's/^/path_in_hive/g' | sed 's/$/\.db/g' | ...
+... | xargs -n1 -I dr hdfs dfs -ls dr | sed 's/\// /g' | sed 's/\.db//g' | awk '{print $12 " " $13 " " $6"T"$7}' | ...
+... | sort -k 1b,1 | uniq > schema_tables
+```
+Несмотря на длину, тут все просто. Сначала берем schema_configs, оттуда выделяем уникальные схемы, затем sed-ом приписываем к началу путь к Hive-вому хранилищу, в конец - расширение .db. Теперь для каждой такой строки выполняем ```hdfs dfs -ls```, это показывает нам все таблицы в заданной базе с датами их последнего изменения. Меняем все слеши на пробелы, вытаскиваем имя базы, имя таблицы и дату ее изменения, пересортировываем и готова табличка schema_tables.
+
+Теперь заключительная часть:
+```
+# configs - tables                                                                                                           join schema_configs schema_tables | awk '{print $2 " " $3 " " $4}' | sort -k 1b,1 | uniq > config_tables
+
+# reports - tables hive dates
+join config_reports config_tables | awk '{print $2"#"$3 " " $4}' | sort -k 1b,1 > report_table_hive_dates
+
+# final!
+join report_table_date report_table_hive_dates | sed 's/#/ /g' | awk '{if ($3<$4) print $1}' | ...
+... | sort | uniq > outdated_reports
+```
+Сначала джойним schema_configs и schema_tables по полю с именем бд, и получаем табличку config_tables - конфиг, таблица и дата ее создания. Затем джойним config_reports и config_tables, чтобы наконец-то получить соответствие отчет - таблица в Hive. Причем имя файла с отчетом и имя таблицы объединяем в одно поле с помощью #. Ну и последний штрих - сджойнить report_table_date и report_table_hive_dates, разделить имя файла с отчетом и имя таблицы пробелом, и напечатать те отчеты, где дата создания отчета меньше даты изменения таблицы, затем ищем уникальные отчеты, и работа готова.
+
+  Заключение
+9 довольно простых строк на баше оказалось достаточно, чтобы решить данную задачу. Далее этот скрипт запускаем по крону, и вебморда, ориентируясь на файл outdated_reports, может выдать для отчета заголовок "Report is outdated" (или не выдать).
+
+Надеюсь, было интересно. Код тут: https://github.com/iboltaev/bash_article/example.sh
