@@ -64,12 +64,12 @@ grep -r "\"created_date\":" projects/*/reports/* | sed 's/:/ /g' | ...
 
 Теперь джойним их, и получаем таблицу с файлами отчетов, таблицами и датами создания этого отчета:
 ```
-join report_tables report_dates > report_table_date
+join report_tables report_dates | awk '{print $1"#"$2 " " $3}' > report_table_date
 ```
 ```
-projects/project1/reports/run1/report1.json table1 2017-08-07T070918.024907
-projects/project1/reports/run1/report1.json table2 2017-08-07T070918.024907
-projects/project1/reports/run1/report1.json table3 2017-08-07T070918.024907
+projects/project1/reports/run1/report1.json#table1 2017-08-07T070918.024907
+projects/project1/reports/run1/report1.json#table2 2017-08-07T070918.024907
+projects/project1/reports/run1/report1.json#table3 2017-08-07T070918.024907
 ...
 ```
 Первая часть вроде бы готова. Теперь по аналогии нагрепаем используемые базы:
