@@ -62,9 +62,9 @@ grep -r "\"created_date\":" projects/*/reports/* | sed 's/:/ /g' | ...
 ... | awk '{print $1 " " $3"T"$4":"$5":"$6}' | sed 's/[\r\n",:]//g' | sort -k 1b,1 | uniq > report_dates
 ```
 
-Теперь джойним их, и получаем таблицу с файлами отчетов, таблицами и датами создания этого отчета:
+Теперь джойним их, сливая имя файла отчета и имя таблицы в одну колонку, и получаем таблицу с файлами отчетов, таблицами и датами создания этого отчета:
 ```
-join report_tables report_dates | awk '{print $1"#"$2 " " $3}' > report_table_date
+join report_tables report_dates | awk '{print $1"#"$2 " " $3}' | sort -k 1b,1 > report_table_date
 ```
 ```
 projects/project1/reports/run1/report1.json#table1 2017-08-07T070918.024907
