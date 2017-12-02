@@ -10,9 +10,6 @@ join report_tables report_dates | awk '{print $1"#"$2 " " $3}' > report_table_da
 # schema - configs                                                                                                                     
 grep -r "schema\":" ~/projects/*/conf/* | sed 's/:/ /g' | awk '{print $3 " " $1}' | sed 's/[\r\n":,]//g' | sort -k 1b,1 | uniq > schema_configs
 
-# config - schemas                                                                                                                     
-cat schema_configs | awk '{print $2 " " $1}' | sort -k 1b,1 | uniq > config_schemas
-
 # configs - reports                                                                                                                    
 cat schema_configs | awk '{print $2}' | sort | uniq | grep ".conf$" | while read line; do re="^(.*)/conf/.*$"; if [[ $line =~ $re ]]; then pdir=${BASH_REMATCH[1]}/reports; re2=".*/([^/\.]*)\..*"; if [[ $line =~ $re2 ]]; then run=${BASH_REMATCH[1]}; reps=$(find $pdir/$run -name *.json); for r in $reps; do echo $line $r ; done ; fi ; fi ;done | grep -v run_log | sort -k 1b,1 > config_reports
 
