@@ -112,7 +112,8 @@ cat schema_configs | awk '{print $1}' | sort | uniq | sed 's/^/path_in_hive/g' |
 
 Теперь заключительная часть:
 ```
-# configs - tables                                                                                                           join schema_configs schema_tables | awk '{print $2 " " $3 " " $4}' | sort -k 1b,1 | uniq > config_tables
+# configs - tables
+join schema_configs schema_tables | awk '{print $2 " " $3 " " $4}' | sort -k 1b,1 | uniq > config_tables
 
 # reports - tables hive dates
 join config_reports config_tables | awk '{print $2"#"$3 " " $4}' | sort -k 1b,1 > report_table_hive_dates
